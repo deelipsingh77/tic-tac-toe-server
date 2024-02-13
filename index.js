@@ -29,8 +29,6 @@ io.on("connection", (socket) => {
   console.log("User Connected: ", socket.id);
 
   socket.on("join_room", (room) => {
-    console.log(room); //Testing
-    
     socket.join(room.roomId);
 
     if (rooms[room.roomId]) {
@@ -40,7 +38,6 @@ io.on("connection", (socket) => {
 
       const randomIndex = Math.floor(Math.random()*2);
       const randomPlayer = rooms[room.roomId].players[randomIndex];
-      console.log("RandomIndex: ", randomIndex, "RandomPlayer: ", randomPlayer)
       io.to(room.roomId).emit("handleTurns", randomPlayer);
     } else {
       rooms[room.roomId] = {
@@ -48,7 +45,6 @@ io.on("connection", (socket) => {
         "players": [room.player]
       }
     }
-    console.log(rooms)
     console.log(`${room.sender} joined the room: ${room.roomId}`);
   });
 
@@ -74,7 +70,7 @@ io.on("connection", (socket) => {
 
       if (winner || isDraw) {
         io.to(move.roomId).emit("gameResult", { winner, isDraw }); // Emit to the specific room
-        // resetGame();
+        resetGame(rooms[move.roomId]);
       }
     }
     console.log(rooms);
@@ -119,10 +115,10 @@ function checkDraw(gameBoard) {
   return !gameBoard.includes(EMPTY) && !checkWinner();
 }
 
-// function resetGame() {
-//   gameBoard = Array(9).fill(EMPTY);
-//   currentPlayer = PLAYER_X;
-// }
+function resetGame(room) {
+  room["gameBoard"] = Array(9).fill(EMPTY);
+  room["moveHistory"].splice(0, room["moveHistory"].length);
+}
 
 server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
