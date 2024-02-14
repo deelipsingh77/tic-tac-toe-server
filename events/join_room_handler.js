@@ -1,11 +1,11 @@
 const Room = require("../room");
 
 module.exports = (socket, io, rooms) => {
-    return ({ roomId, player }) => {
+    return ({ roomId, sender, player}) => {
     const room = rooms[roomId] || new Room(roomId);
 
     if (!room.isFull()) {
-      room.addPlayer(player);
+      room.addPlayer({ id: sender, symbol: player});
       socket.join(roomId);
       rooms[roomId] = room;
 
@@ -15,7 +15,7 @@ module.exports = (socket, io, rooms) => {
         io.to(roomId).emit("gameStart", true);
         io.to(roomId).emit("updateBoard", room.gameBoard);
         const randomPlayer = room.players[Math.floor(Math.random() * 2)];
-        io.to(roomId).emit("handleTurns", randomPlayer);
+        io.to(roomId).emit("handleTurns", randomPlayer.symbol);
       }
     } else {
       socket.emit("roomFull");

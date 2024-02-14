@@ -2,7 +2,7 @@ module.exports = (socket, io, rooms) => {
     return ({ roomId }) => {
     if (rooms[roomId]) {
       rooms[roomId].players = rooms[roomId].players.filter(
-        (p) => p !== socket.id
+        (p) => p.id !== socket.id
       );
       socket.leave(roomId);
 
