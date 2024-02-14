@@ -1,11 +1,11 @@
 require('dotenv').config();
-const { createServer } = require("http"); 
+const http = require("http");
 const express = require("express");
 const { Server } = require("socket.io");
 const cors = require("cors");
 
 const app = express();
-const server = createServer(app); 
+const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: process.env.CORS_ORIGIN || "http://localhost:3000",
@@ -26,8 +26,7 @@ app.get("/", (req, res) => {
 io.on("connection", (socket) => {
   console.log("User Connected: ", socket.id);
 
-  socket.on("join_room", (room) => {
-    const { roomId, player } = room;
+  socket.on("join_room", ({ roomId, player }) => {
     socket.join(roomId);
 
     if (!rooms[roomId]) {
@@ -39,23 +38,19 @@ io.on("connection", (socket) => {
       rooms[roomId].players.push(player);
       io.to(roomId).emit("gameStart", true);
       io.to(roomId).emit("updateBoard", rooms[roomId].gameBoard);
-
-      const randomIndex = Math.floor(Math.random() * 2);
-      const randomPlayer = rooms[roomId].players[randomIndex];
+      const randomPlayer = rooms[roomId].players[Math.floor(Math.random() * 2)];
       io.to(roomId).emit("handleTurns", randomPlayer);
     }
 
     console.log(`${player} joined the room: ${roomId}`);
   });
 
-  socket.on("leave_room", (room) => {
-    const { roomId } = room;
+  socket.on("leave_room", ({ roomId }) => {
     socket.leave(roomId);
     console.log(`${socket.id} left the room: ${roomId}`);
   });
 
-  socket.on("move", (move) => {
-    const { roomId, player, index } = move;
+  socket.on("move", ({ roomId, player, index }) => {
     const gameBoard = rooms[roomId].gameBoard;
 
     if (isValidMove(gameBoard, index)) {
@@ -79,43 +74,30 @@ io.on("connection", (socket) => {
   });
 });
 
-function isValidMove(gameBoard, index) {
-  return gameBoard[index] === EMPTY;
-}
+const isValidMove = (gameBoard, index) => gameBoard[index] === EMPTY;
 
-function checkWinner(gameBoard) {
+const checkWinner = (gameBoard) => {
   const winPatterns = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8], 
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6],
+    [0, 1, 2], [3, 4, 5], [6, 7, 8], 
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6],
   ];
 
   for (const pattern of winPatterns) {
     const [a, b, c] = pattern;
-    if (
-      gameBoard[a] &&
-      gameBoard[a] === gameBoard[b] &&
-      gameBoard[a] === gameBoard[c]
-    ) {
+    if (gameBoard[a] && gameBoard[a] === gameBoard[b] && gameBoard[a] === gameBoard[c]) {
       return gameBoard[a];
     }
   }
 
   return null;
-}
+};
 
-function checkDraw(gameBoard) {
-  return !gameBoard.includes(EMPTY) && !checkWinner(gameBoard); 
-}
+const checkDraw = (gameBoard) => !gameBoard.includes(EMPTY) && !checkWinner(gameBoard);
 
-function resetGame(room) {
+const resetGame = (room) => {
   room.gameBoard = Array(9).fill(EMPTY);
-}
+};
 
 server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
