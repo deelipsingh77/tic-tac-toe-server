@@ -17,7 +17,7 @@ class Room {
     return this.gameBoard[index] === null;
   }
 
-  makeMove(player, index) {
+  makeMove(player, index, io) {
     this.gameBoard[index] = player;
     const winner = this.getWinner();
     const isDraw = this.checkDraw();
