@@ -1,25 +1,23 @@
+require('dotenv').config();
+const { createServer } = require("http"); 
 const express = require("express");
-const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 
 const app = express();
-app.use(cors());
-
-const server = http.createServer(app);
-
+const server = createServer(app); 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
     methods: ["GET", "POST"],
   },
 });
 
-const PORT = process.env.PORT || 5000;
-
+const PORT = process.env.PORT || 4000;
 const EMPTY = null;
-
 const rooms = {};
+
+app.use(cors());
 
 app.get("/", (req, res) => {
   res.send("Tic Tac Toe Server is running!");
@@ -29,50 +27,50 @@ io.on("connection", (socket) => {
   console.log("User Connected: ", socket.id);
 
   socket.on("join_room", (room) => {
-    socket.join(room.roomId);
+    const { roomId, player } = room;
+    socket.join(roomId);
 
-    if (rooms[room.roomId]) {
-      rooms[room.roomId].players.push(room.player);
-      io.to(room.roomId).emit("gameStart", true);
-      io.to(room.roomId).emit("updateBoard", rooms[room.roomId]["gameBoard"]);
-
-      const randomIndex = Math.floor(Math.random()*2);
-      const randomPlayer = rooms[room.roomId].players[randomIndex];
-      io.to(room.roomId).emit("handleTurns", randomPlayer);
+    if (!rooms[roomId]) {
+      rooms[roomId] = {
+        gameBoard: Array(9).fill(EMPTY),
+        players: [player],
+      };
     } else {
-      rooms[room.roomId] = {
-        "gameBoard": Array(9).fill(EMPTY),
-        "players": [room.player]
-      }
+      rooms[roomId].players.push(player);
+      io.to(roomId).emit("gameStart", true);
+      io.to(roomId).emit("updateBoard", rooms[roomId].gameBoard);
+
+      const randomIndex = Math.floor(Math.random() * 2);
+      const randomPlayer = rooms[roomId].players[randomIndex];
+      io.to(roomId).emit("handleTurns", randomPlayer);
     }
-    console.log(`${room.sender} joined the room: ${room.roomId}`);
+
+    console.log(`${player} joined the room: ${roomId}`);
   });
 
   socket.on("leave_room", (room) => {
-    socket.leave(room.roomId);
-    console.log(`${room} left the room: ${room.roomId}`);
+    const { roomId } = room;
+    socket.leave(roomId);
+    console.log(`${socket.id} left the room: ${roomId}`);
   });
 
   socket.on("move", (move) => {
-    if (isValidMove(rooms[move.roomId]["gameBoard"], move.index)) {
-      rooms[move.roomId]["gameBoard"][move.index] = move.player;
+    const { roomId, player, index } = move;
+    const gameBoard = rooms[roomId].gameBoard;
 
-      if (rooms[move.roomId]["moveHistory"]) {
-        rooms[move.roomId]["moveHistory"].push(move);
-      } else {
-        rooms[move.roomId]["moveHistory"] = [move];
-      }
+    if (isValidMove(gameBoard, index)) {
+      gameBoard[index] = player;
+      const winner = checkWinner(gameBoard);
+      const isDraw = checkDraw(gameBoard);
 
-      const winner = checkWinner(rooms[move.roomId]["gameBoard"]);
-      const isDraw = checkDraw(rooms[move.roomId]["gameBoard"]);
-
-      io.to(move.roomId).emit("updateBoard", rooms[move.roomId]["gameBoard"]);
+      io.to(roomId).emit("updateBoard", gameBoard);
 
       if (winner || isDraw) {
-        io.to(move.roomId).emit("gameResult", { winner, isDraw }); // Emit to the specific room
-        resetGame(rooms[move.roomId]);
+        io.to(roomId).emit("gameResult", { winner, isDraw });
+        resetGame(rooms[roomId]);
       }
     }
+
     console.log(rooms);
   });
 
@@ -89,12 +87,12 @@ function checkWinner(gameBoard) {
   const winPatterns = [
     [0, 1, 2],
     [3, 4, 5],
-    [6, 7, 8], // Rows
+    [6, 7, 8], 
     [0, 3, 6],
     [1, 4, 7],
-    [2, 5, 8], // Columns
+    [2, 5, 8],
     [0, 4, 8],
-    [2, 4, 6], // Diagonals
+    [2, 4, 6],
   ];
 
   for (const pattern of winPatterns) {
@@ -112,12 +110,11 @@ function checkWinner(gameBoard) {
 }
 
 function checkDraw(gameBoard) {
-  return !gameBoard.includes(EMPTY) && !checkWinner();
+  return !gameBoard.includes(EMPTY) && !checkWinner(gameBoard); 
 }
 
 function resetGame(room) {
-  room["gameBoard"] = Array(9).fill(EMPTY);
-  room["moveHistory"].splice(0, room["moveHistory"].length);
+  room.gameBoard = Array(9).fill(EMPTY);
 }
 
 server.listen(PORT, () => {
