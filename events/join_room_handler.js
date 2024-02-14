@@ -27,7 +27,6 @@ module.exports = (socket, io, rooms) => {
       const randomPlayer = room.players[Math.floor(Math.random() * 2)];
       io.to(room.roomId).emit("handleTurns", randomPlayer.symbol);
     }
-    console.log(room)
     console.log(`${data.player} joined the room: ${room.roomId}`);
   };
 };
