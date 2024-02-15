@@ -8,7 +8,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "https://tic-tac-toe-next-omega.vercel.app/",
+    origin: "https://tic-tac-toe-next-omega.vercel.app",
     methods: ["GET", "POST"],
   },
 });
@@ -17,12 +17,7 @@ const PORT = process.env.PORT || 4000;
 
 const rooms = {};
 
-app.use(
-  cors({
-    origin: "https://tic-tac-toe-next-omega.vercel.app/",
-    methods: ["GET", "POST"],
-  })
-);
+app.use(cors());
 
 app.get("/", (req, res) => {
   res.send("Tic Tac Toe Server is running!");
