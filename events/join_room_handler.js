@@ -3,30 +3,23 @@ const crypto = require("crypto");
 
 module.exports = (socket, io, rooms) => {
   return (data) => {
-    const availableRoom = Object.values(rooms).find((room) => !room.isFull());
-    if (availableRoom) {
-      room = availableRoom;
-      const playerAssign = room.players[0].symbol == "X" ? "O" : "X";
-      room.addPlayer({ id: data.sender, symbol: playerAssign });
-      socket.join(room.roomId);
-      io.to(room.roomId).emit("joinRoomResponse", {
-        ...data,
-        roomId: room.roomId,
-        player: playerAssign,
-      });
-    } else {
-      const roomId = crypto.randomBytes(8).toString("hex");
-      room = new Room(roomId);
-      const playerAssign = ["X", "O"][Math.floor(Math.random() * 2)];
-      room.addPlayer({ id: data.sender, symbol: playerAssign });
-      socket.join(room.roomId);
-      rooms[roomId] = room;
-      io.to(room.roomId).emit("joinRoomResponse", {
-        ...data,
-        roomId: room.roomId,
-        player: playerAssign,
-      });
-    }
+    let room =
+      Object.values(rooms).find((room) => !room.isFull()) ||
+      (() => {
+        const roomId = crypto.randomBytes(8).toString("hex");
+        const newRoom = new Room(roomId);
+        rooms[roomId] = newRoom;
+        return newRoom;
+      })();
+
+    const playerAssign = room.getAvailableSymbol();
+    room.addPlayer({ id: data.sender, symbol: playerAssign });
+    socket.join(room.roomId);
+    io.to(room.roomId).emit("joinRoomResponse", {
+      ...data,
+      roomId: room.roomId,
+      player: playerAssign,
+    });
 
     if (room.players.length === 1) {
       io.to(room.roomId).emit("waitingForOpponent");
@@ -36,6 +29,6 @@ module.exports = (socket, io, rooms) => {
       const randomPlayer = room.players[Math.floor(Math.random() * 2)];
       io.to(room.roomId).emit("handleTurns", randomPlayer.symbol);
     }
-    console.log(`${data.player} joined the room: ${room.roomId}`);
+    console.log(`${data.sender} joined the room: ${room.roomId}`);
   };
 };

@@ -5,6 +5,19 @@ class Room {
     this.players = [];
   }
 
+  getAvailableSymbol() {
+    if (this.players.length === 0) {
+      return ["X", "O"][Math.floor(Math.random() * 2)];
+    } else {
+      const existingSymbol = this.players[0].symbol;
+      return existingSymbol === "X" ? "O" : "X";
+    }
+  }
+
+  getRandomPlayer(){
+    return this.players[Math.floor(Math.random() * 2)].symbol;
+  }
+
   isFull() {
     return this.players.length === 2;
   }
