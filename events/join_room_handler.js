@@ -3,20 +3,29 @@ const crypto = require("crypto");
 
 module.exports = (socket, io, rooms) => {
   return (data) => {
-    let room;
     const availableRoom = Object.values(rooms).find((room) => !room.isFull());
     if (availableRoom) {
       room = availableRoom;
-      room.addPlayer({ id: data.sender, symbol: data.player });
+      const playerAssign = room.players[0].symbol == "X" ? "O" : "X";
+      room.addPlayer({ id: data.sender, symbol: playerAssign });
       socket.join(room.roomId);
-      io.to(room.roomId).emit("joinRoomResponse", {...data, roomId: room.roomId})
+      io.to(room.roomId).emit("joinRoomResponse", {
+        ...data,
+        roomId: room.roomId,
+        player: playerAssign,
+      });
     } else {
       const roomId = crypto.randomBytes(8).toString("hex");
       room = new Room(roomId);
-      room.addPlayer({ id: data.sender, symbol: data.player });
+      const playerAssign = ["X", "O"][Math.floor(Math.random() * 2)];
+      room.addPlayer({ id: data.sender, symbol: playerAssign });
       socket.join(room.roomId);
       rooms[roomId] = room;
-      io.to(room.roomId).emit("joinRoomResponse", {...data, roomId: room.roomId})
+      io.to(room.roomId).emit("joinRoomResponse", {
+        ...data,
+        roomId: room.roomId,
+        player: playerAssign,
+      });
     }
 
     if (room.players.length === 1) {
