@@ -35,8 +35,18 @@ io.on("connection", (socket) => {
     require("./events/leave_room_handler")(socket, io, rooms)
   );
   socket.on("move", require("./events/move_handler")(io, rooms));
+
   socket.on("disconnect", () => {
-    console.log("User disconnected");
+    const currentRoom = Object.values(rooms).find((room)=>{
+      return room.players.find((player)=>player.id === socket.id)
+    })
+    if (currentRoom) {
+      socket.leave(currentRoom.roomId);
+      io.to(currentRoom.roomId).emit("opponentLeft");
+      console.log(`${socket.id} left the room: ${currentRoom.roomId}`);
+      delete rooms[currentRoom.roomId];
+    }
+    console.log(`${socket.id} disconnected`);
   });
 });
 
