@@ -3,6 +3,7 @@ class Room {
     this.roomId = roomId;
     this.gameBoard = Array(9).fill(null);
     this.players = [];
+    this.turn = '';
   }
 
   getAvailableSymbol() {
@@ -34,8 +35,9 @@ class Room {
     this.gameBoard[index] = player;
     const winner = this.getWinner();
     const isDraw = this.checkDraw();
+    this.turn = player === 'X' ? 'O' : 'X';
 
-    io.to(this.roomId).emit("updateBoard", this.gameBoard);
+    io.to(this.roomId).emit("roomDetails", this);
 
     if (winner || isDraw) {
       io.to(this.roomId).emit("gameResult", { winner, isDraw });
